@@ -1,0 +1,201 @@
+---
+interface SaberProps {
+  color: string;
+  glowColor: string;
+  isLocked: boolean;
+  handleType: 'standard' | 'curved' | 'cross' | 'double';
+  isDouble?: boolean;
+  starsRequired?: number;
+}
+
+const SABERS: SaberProps[] = [
+  { 
+    color: '#fff', 
+    glowColor: '#0066ff', 
+    isLocked: false, 
+    handleType: 'standard'
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#ff0000', 
+    isLocked: false, 
+    handleType: 'curved'
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#ff00ff', 
+    isLocked: false, 
+    isDouble: true, 
+    handleType: 'double'
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#333333', 
+    isLocked: true, 
+    handleType: 'cross',
+    starsRequired: 10
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#00ff00', 
+    isLocked: true, 
+    handleType: 'curved',
+    starsRequired: 20
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#800080', 
+    isLocked: true, 
+    handleType: 'standard',
+    starsRequired: 50
+  }
+];
+---
+
+<div class="relative flex min-h-screen flex-col items-center justify-center touch-none">
+  <!-- Navigation buttons -->
+  <div class="fixed inset-x-0 bottom-32 flex justify-between px-6 z-50 pointer-events-none">
+    <button
+      id="prevSaber"
+      class="w-12 h-12 rounded-full bg-gray-900/50 backdrop-blur-sm flex items-center justify-center
+        border border-gray-700 pointer-events-auto active:scale-95 transition-transform
+        hover:bg-gray-800/50"
+      aria-label="Previous saber"
+    >
+      <svg class="w-6 h-6 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <button
+      id="nextSaber"
+      class="w-12 h-12 rounded-full bg-gray-900/50 backdrop-blur-sm flex items-center justify-center
+        border border-gray-700 pointer-events-auto active:scale-95 transition-transform
+        hover:bg-gray-800/50"
+      aria-label="Next saber"
+    >
+      <svg class="w-6 h-6 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Sabers -->
+  {SABERS.map((saber, index) => (
+    <div 
+      id={`saber-${index}`}
+      class="absolute opacity-0 transition-opacity duration-300"
+      data-active={index === 0}
+      style={`--glow-color: ${saber.glowColor}`}
+    >
+      <div class="relative flex flex-col items-center cursor-pointer">
+        <!-- Saber Handle -->
+        <div class={`w-8 h-64 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full relative
+          ${saber.handleType === 'curved' ? 'transform rotate-45' : ''}
+          ${saber.handleType === 'cross' ? 'after:content-[""] after:absolute after:w-16 after:h-4 after:bg-gray-700 after:top-8 after:left-1/2 after:-translate-x-1/2' : ''}
+          ${saber.isDouble ? 'before:content-[""] before:absolute before:w-8 before:h-64 before:bg-gradient-to-b before:from-gray-600 before:to-gray-800 before:rounded-full before:bottom-full before:rotate-180' : ''}
+        `}>
+          <div class="absolute top-4 left-1/2 -translate-x-1/2 w-6 h-6 bg-gray-900 rounded-full"></div>
+          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 bg-gray-900 rounded-full"></div>
+        </div>
+        
+        <!-- Saber Blade -->
+        <div class="blade absolute bottom-[95%] w-4 scale-y-0 origin-bottom transition-transform duration-500">
+          <div class={`w-full h-[28rem] rounded-full blur-sm`} style={`background: ${saber.glowColor}`}></div>
+          <div class="absolute inset-0 w-full h-[28rem] rounded-full bg-white blur-md opacity-50"></div>
+        </div>
+
+        {saber.isDouble && (
+          <div class="blade absolute top-[95%] w-4 scale-y-0 origin-top transition-transform duration-500 rotate-180">
+            <div class={`w-full h-[28rem] rounded-full blur-sm`} style={`background: ${saber.glowColor}`}></div>
+            <div class="absolute inset-0 w-full h-[28rem] rounded-full bg-white blur-md opacity-50"></div>
+          </div>
+        )}
+      </div>
+    </div>
+  ))}
+
+  <!-- Saber indicator dots -->
+  <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-50">
+    {SABERS.map((_, index) => (
+      <div
+        class={`w-2 h-2 rounded-full transition-colors duration-200 ${
+          index === 0 ? 'bg-white' : 'bg-gray-600'
+        }`}
+        data-dot={index}
+      />
+    ))}
+  </div>
+</div>
+
+<script define:vars={{ SABERS }}>
+  import { Howl } from 'howler';
+
+  let currentSaber = 0;
+  const totalSabers = SABERS.length;
+
+  // Initialize sound effects
+  const igniteSound = new Howl({
+    src: ['/sounds/lightsaber-ignite.mp3']
+  });
+  
+  const retractSound = new Howl({
+    src: ['/sounds/lightsaber-retract.mp3']
+  });
+  
+  const hum = new Howl({
+    src: ['/sounds/lightsaber-hum.mp3'],
+    loop: true,
+    volume: 0.5
+  });
+
+  function switchSaber(direction) {
+    const oldSaber = document.getElementById(`saber-${currentSaber}`);
+    const oldDot = document.querySelector(`[data-dot="${currentSaber}"]`);
+    
+    currentSaber = direction === 'next' 
+      ? (currentSaber + 1) % totalSabers
+      : (currentSaber - 1 + totalSabers) % totalSabers;
+    
+    const newSaber = document.getElementById(`saber-${currentSaber}`);
+    const newDot = document.querySelector(`[data-dot="${currentSaber}"]`);
+    
+    oldSaber?.classList.remove('opacity-100');
+    oldSaber?.classList.add('opacity-0');
+    oldDot?.classList.remove('bg-white');
+    oldDot?.classList.add('bg-gray-600');
+    
+    newSaber?.classList.remove('opacity-0');
+    newSaber?.classList.add('opacity-100');
+    newDot?.classList.remove('bg-gray-600');
+    newDot?.classList.add('bg-white');
+  }
+
+  // Event listeners
+  document.getElementById('prevSaber')?.addEventListener('click', () => switchSaber('prev'));
+  document.getElementById('nextSaber')?.addEventListener('click', () => switchSaber('next'));
+
+  // Initialize first saber
+  document.getElementById('saber-0')?.classList.add('opacity-100');
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') switchSaber('prev');
+    if (e.key === 'ArrowRight') switchSaber('next');
+  });
+
+  // Touch gestures
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  });
+
+  document.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    if (Math.abs(diff) > 50) { // Minimum swipe distance
+      if (diff > 0) switchSaber('next');
+      else switchSaber('prev');
+    }
+  });
+</script> 

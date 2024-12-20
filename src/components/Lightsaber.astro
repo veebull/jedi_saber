@@ -1,0 +1,58 @@
+---
+---
+
+<div class="relative w-full h-screen flex items-center justify-center overflow-hidden">
+  <div id="saber" class="relative flex flex-col items-center cursor-pointer">
+    <!-- Saber Handle -->
+    <div class="w-8 h-64 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full relative">
+      <div class="absolute top-4 left-1/2 -translate-x-1/2 w-6 h-6 bg-gray-900 rounded-full"></div>
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 bg-gray-900 rounded-full"></div>
+    </div>
+    
+    <!-- Saber Blade (initially hidden) -->
+    <div id="blade" class="absolute bottom-[95%] w-4 scale-y-0 origin-bottom transition-transform duration-500">
+      <div class="w-full h-[28rem] rounded-full bg-gradient-to-r from-saber-blue to-saber-purple blur-sm"></div>
+      <div class="absolute inset-0 w-full h-[28rem] rounded-full bg-white blur-md opacity-50"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { Howl } from 'howler';
+
+  let isOn = false;
+  const saber = document.getElementById('saber');
+  const blade = document.getElementById('blade');
+  
+  // Initialize sound effects
+  const igniteSound = new Howl({
+    src: ['/sounds/lightsaber-ignite.mp3']
+  });
+  
+  const retractSound = new Howl({
+    src: ['/sounds/lightsaber-retract.mp3']
+  });
+  
+  const hum = new Howl({
+    src: ['/sounds/lightsaber-hum.mp3'],
+    loop: true,
+    volume: 0.5
+  });
+
+  saber?.addEventListener('click', () => {
+    if (!isOn) {
+      // Turn on
+      blade?.classList.remove('scale-y-0');
+      blade?.classList.add('scale-y-100');
+      igniteSound.play();
+      setTimeout(() => hum.play(), 300);
+    } else {
+      // Turn off
+      blade?.classList.remove('scale-y-100');
+      blade?.classList.add('scale-y-0');
+      retractSound.play();
+      hum.stop();
+    }
+    isOn = !isOn;
+  });
+</script> 

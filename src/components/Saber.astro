@@ -1,0 +1,315 @@
+---
+interface Props {
+  color: string;
+  glowColor: string;
+  isLocked: boolean;
+  isActive: boolean;
+  starsRequired?: number;
+  isDouble?: boolean;
+  handleType: 'standard' | 'curved' | 'cross' | 'double';
+  id: string;
+}
+
+const {
+  color = '#fff',
+  glowColor = '#0066ff',
+  isLocked = false,
+  isActive = true,
+  starsRequired = 0,
+  isDouble = false,
+  handleType = 'standard',
+  id = 'saber',
+} = Astro.props;
+
+// Handle variations
+const handleStyles = {
+  standard: 'h-32',
+  curved: 'h-36 rounded-bl-3xl rounded-br-3xl',
+  cross: 'h-32 before:content-[""] before:absolute before:w-16 before:h-4 before:bg-gray-800 before:top-8 before:-left-4 before:rounded-lg',
+  double: 'h-48',
+};
+
+// Import Howler type for TypeScript
+import type { Howl } from 'howler';
+
+// We'll pass the sound URLs as variables
+const SOUND_URLS = {
+  ignite: '/sounds/lightsaber-ignite.mp3',
+  retract: '/sounds/lightsaber-retract.mp3',
+  hum: '/sounds/lightsaber-hum.mp3'
+};
+
+// Define beam styles
+const beamStyles = {
+  top: {
+    initial: {
+      transform: 'translateX(-50%) scaleY(0)',
+      opacity: '1',
+      height: '28rem',
+      visibility: 'hidden',
+      transformOrigin: 'bottom',
+    },
+    final: {
+      transform: 'translateX(-50%) scaleY(1)',
+      opacity: '1',
+      height: '28rem',
+      visibility: 'visible',
+      transformOrigin: 'bottom',
+    }
+  },
+  bottom: {
+    initial: {
+      transform: 'translateX(-50%) scaleY(0)',
+      opacity: '1',
+      height: '28rem',
+      visibility: 'hidden',
+      transformOrigin: 'top',
+    },
+    final: {
+      transform: 'translateX(-50%) scaleY(1)',
+      opacity: '1',
+      height: '28rem',
+      visibility: 'visible',
+      transformOrigin: 'top',
+    }
+  }
+};
+
+// Add retract styles for single blade
+const retractStyles = {
+  single: {
+    transform: 'translateX(-50%) scaleY(0)',
+    transformOrigin: 'bottom',
+  },
+  double: {
+    top: {
+      transform: 'translateX(-50%) scaleY(0)',
+      transformOrigin: 'bottom',
+    },
+    bottom: {
+      transform: 'translateX(-50%) scaleY(0)',
+      transformOrigin: 'top',
+    }
+  }
+};
+---
+
+<div
+  class:list={[
+    'fixed',
+    isDouble ? 'top-1/2 -translate-y-1/2' : 'bottom-12',
+    'left-1/2 transform -translate-x-1/2',
+    !isActive ? 'opacity-0 pointer-events-none' : 'opacity-100',
+    isLocked ? 'opacity-50' : '',
+  ]}
+  id={`saber-container-${id}`}
+>
+  <div class="relative flex flex-col items-center">
+    <!-- Top beam wrapper with overflow hidden -->
+    {
+      isDouble && (
+        <div class="absolute bottom-full w-4 overflow-hidden" style={{ height: '28rem' }}>
+          <div
+            class="blade absolute bottom-0 w-full transition-transform duration-500 ease-out"
+            data-saber={id}
+            data-position="top"
+            style={{
+              filter: `drop-shadow(0 0 10px ${glowColor})`,
+              height: '100%',
+              left: '50%',
+              ...beamStyles.top.initial
+            }}
+          >
+            <div
+              class="absolute bottom-0 w-full h-full rounded-full"
+              style={{
+                background: color,
+                border: `2px solid ${glowColor}`,
+                boxShadow: `0 0 20px ${glowColor}`,
+              }}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    <!-- Saber handle -->
+    <div
+      class:list={[
+        'w-8 bg-gray-800 rounded-lg cursor-pointer relative',
+        handleStyles[handleType],
+      ]}
+      data-handle={id}
+    >
+      <div class="w-full h-4 bg-gray-700 rounded-t-lg" />
+      {
+        handleType === 'curved' && (
+          <div class="absolute bottom-0 w-full h-8 bg-gray-700 rounded-b-lg" />
+        )
+      }
+      {
+        isLocked && (
+          <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2">
+            <div class="whitespace-nowrap text-xs text-yellow-400">
+              ⭐ {starsRequired} stars
+            </div>
+            <button
+              class="px-3 py-1 text-xs font-medium rounded-full bg-yellow-500 text-black hover:bg-yellow-400 
+                transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={`Buy ${starsRequired} stars`}
+            >
+              Buy
+            </button>
+          </div>
+        )
+      }
+    </div>
+
+    <!-- Bottom beam wrapper with overflow hidden -->
+    <div 
+      class="absolute w-4 overflow-hidden" 
+      style={{ 
+        height: '28rem',
+        top: isDouble ? '100%' : 'auto',
+        bottom: isDouble ? 'auto' : '100%',
+      }}
+    >
+      <div
+        class="blade absolute w-full transition-transform duration-500 ease-out"
+        data-saber={id}
+        data-position="bottom"
+        style={{
+          filter: `drop-shadow(0 0 10px ${glowColor})`,
+          height: '100%',
+          left: '50%',
+          top: isDouble ? '0' : 'auto',
+          bottom: isDouble ? 'auto' : '0',
+          ...beamStyles[isDouble ? 'bottom' : 'top'].initial
+        }}
+      >
+        <div
+          class="absolute w-full h-full rounded-full"
+          style={{
+            background: color,
+            border: `2px solid ${glowColor}`,
+            boxShadow: `0 0 20px ${glowColor}`,
+          }}
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ id, isLocked, SOUND_URLS, beamStyles, retractStyles, isDouble }}>
+  window.addEventListener('load', () => {
+    class SaberController {
+      constructor(saberId) {
+        this.isOn = false;
+        this.blades = document.querySelectorAll(`[data-saber="${saberId}"]`);
+        this.handle = document.querySelector(`[data-handle="${saberId}"]`);
+        this.isAnimating = false;
+        
+        // Initialize sound effects
+        this.sounds = {
+          ignite: new Howl({ src: [SOUND_URLS.ignite] }),
+          retract: new Howl({ src: [SOUND_URLS.retract] }),
+          hum: new Howl({ 
+            src: [SOUND_URLS.hum],
+            loop: true,
+            volume: 0.5
+          })
+        };
+
+        if (this.handle) {
+          this.handle.addEventListener('click', () => {
+            if (!this.isAnimating) this.toggle();
+          });
+        }
+
+        window.addEventListener('unload', () => this.cleanup());
+      }
+
+      toggle() {
+        if (isLocked) return;
+        this.isAnimating = true;
+        
+        if (!this.isOn) {
+          this.turnOn();
+        } else {
+          this.turnOff();
+        }
+        this.isOn = !this.isOn;
+      }
+
+      turnOn() {
+        this.sounds.ignite.play();
+
+        this.blades.forEach((blade, index) => {
+          const position = blade.getAttribute('data-position');
+          const isTop = position === 'top';
+          const styles = isTop ? beamStyles.top.final : beamStyles.bottom.final;
+          
+          // First make blade visible but maintain initial position
+          blade.style.visibility = 'visible';
+          
+          setTimeout(() => {
+            blade.style.transform = styles.transform;
+            
+            if (index === this.blades.length - 1) {
+              setTimeout(() => {
+                this.sounds.hum.play();
+                this.isAnimating = false;
+              }, 200);
+            }
+          }, index * 150);
+        });
+      }
+
+      turnOff() {
+        this.sounds.retract.play();
+        this.sounds.hum.stop();
+
+        this.blades.forEach((blade, index) => {
+          const position = blade.getAttribute('data-position');
+          const isTop = position === 'top';
+          
+          // Determine retract direction based on blade type
+          let retractTransform;
+          if (isDouble) {
+            retractTransform = isTop ? retractStyles.double.top.transform : retractStyles.double.bottom.transform;
+          } else {
+            // For single blade, always retract downward
+            retractTransform = retractStyles.single.transform;
+          }
+          
+          setTimeout(() => {
+            // Apply the retract transform
+            blade.style.transform = retractTransform;
+            
+            // Hide blade after animation completes
+            setTimeout(() => {
+              blade.style.visibility = 'hidden';
+              // Reset transform to initial state after hiding
+              blade.style.transform = isTop ? 
+                beamStyles.top.initial.transform : 
+                beamStyles.bottom.initial.transform;
+              
+              if (index === this.blades.length - 1) {
+                this.isAnimating = false;
+              }
+            }, 500);
+          }, index * 150);
+        });
+      }
+
+      cleanup() {
+        this.sounds.hum.stop();
+      }
+    }
+
+    new SaberController(id);
+  });
+</script>
+
+<!-- Add Howler.js via CDN -->
+<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script> 

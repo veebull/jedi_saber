@@ -1,11 +1,159 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import Saber from '../components/Saber.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// Define saber configurations
+const SABERS = [
+  { 
+    color: '#fff', 
+    glowColor: '#0066ff', 
+    isLocked: false, 
+    handleType: 'standard' as const
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#ff0000', 
+    isLocked: false, 
+    handleType: 'curved' as const
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#ff00ff', 
+    isLocked: false, 
+    isDouble: true, 
+    handleType: 'double' as const
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#333333', 
+    isLocked: true, 
+    handleType: 'cross',
+    starsRequired: 10
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#00ff00', 
+    isLocked: true, 
+    handleType: 'curved',
+    starsRequired: 20
+  },
+  { 
+    color: '#fff', 
+    glowColor: '#800080', 
+    isLocked: true, 
+    handleType: 'standard',
+    starsRequired: 50
+  }
+] as const;
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Jedi Saber">
+  <main class="relative min-h-screen">
+    <!-- Navigation buttons -->
+    <div class="fixed inset-x-0 bottom-32 flex justify-between px-6 z-50 pointer-events-none">
+      <button
+        id="prevSaber"
+        class="w-12 h-12 rounded-full bg-gray-900/50 backdrop-blur-sm flex items-center justify-center
+          border border-gray-700 pointer-events-auto active:scale-95 transition-transform
+          hover:bg-gray-800/50"
+        aria-label="Previous saber"
+      >
+        <svg class="w-6 h-6 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button
+        id="nextSaber"
+        class="w-12 h-12 rounded-full bg-gray-900/50 backdrop-blur-sm flex items-center justify-center
+          border border-gray-700 pointer-events-auto active:scale-95 transition-transform
+          hover:bg-gray-800/50"
+        aria-label="Next saber"
+      >
+        <svg class="w-6 h-6 text-gray-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Sabers -->
+    {SABERS.map((saber, index) => (
+      <div 
+        id={`saber-wrapper-${index}`}
+        class:list={[
+          'absolute w-full h-full transition-opacity duration-300',
+          index === 0 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'
+        ]}
+      >
+        <Saber {...saber} isActive={true} id={`saber-${index}`} />
+      </div>
+    ))}
+
+    <!-- Navigation dots -->
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 z-50">
+      {SABERS.map((_, index) => (
+        <div
+          class:list={[
+            'w-2 h-2 rounded-full transition-colors duration-200',
+            index === 0 ? 'bg-white' : 'bg-gray-600'
+          ]}
+          data-dot={index}
+        />
+      ))}
+    </div>
+  </main>
 </Layout>
+
+<script>
+  let currentSaber = 0;
+  const totalSabers = document.querySelectorAll('[id^="saber-wrapper-"]').length;
+
+  function switchSaber(direction: 'next' | 'prev') {
+    const oldSaber = document.getElementById(`saber-wrapper-${currentSaber}`);
+    const oldDot = document.querySelector(`[data-dot="${currentSaber}"]`);
+    
+    currentSaber = direction === 'next' 
+      ? (currentSaber + 1) % totalSabers
+      : (currentSaber - 1 + totalSabers) % totalSabers;
+    
+    const newSaber = document.getElementById(`saber-wrapper-${currentSaber}`);
+    const newDot = document.querySelector(`[data-dot="${currentSaber}"]`);
+    
+    // Update saber visibility and z-index
+    oldSaber?.classList.remove('opacity-100', 'z-10');
+    oldSaber?.classList.add('opacity-0', 'pointer-events-none', 'z-0');
+    newSaber?.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
+    newSaber?.classList.add('opacity-100', 'z-10');
+    
+    // Update dot styles
+    oldDot?.classList.remove('bg-white');
+    oldDot?.classList.add('bg-gray-600');
+    newDot?.classList.remove('bg-gray-600');
+    newDot?.classList.add('bg-white');
+  }
+
+  // Button click handlers
+  document.getElementById('prevSaber')?.addEventListener('click', () => switchSaber('prev'));
+  document.getElementById('nextSaber')?.addEventListener('click', () => switchSaber('next'));
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') switchSaber('prev');
+    if (e.key === 'ArrowRight') switchSaber('next');
+  });
+
+  // Touch gestures
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  });
+
+  document.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    if (Math.abs(diff) > 50) { // Minimum swipe distance
+      if (diff > 0) switchSaber('next');
+      else switchSaber('prev');
+    }
+  });
+</script>
